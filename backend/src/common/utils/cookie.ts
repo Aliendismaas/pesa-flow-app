@@ -10,10 +10,13 @@ type CookiePayloadType = {
 
 export const REFRESH_PATH = `${config.BASE_PATH}/auth/refresh`;
 
+const isProduction =
+  config.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+
 const defaults: CookieOptions = {
   httpOnly: true,
-  //secure: config.NODE_ENV === "production" ? true : false,
-  //sameSite: config.NODE_ENV === "production" ? "strict" : "lax",
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
 };
 
 export const getRefreshTokenCookieOptions = (): CookieOptions => {
@@ -46,6 +49,6 @@ export const setAuthenticationCookies = ({
     .cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
 
 export const clearAuthenticationCookies = (res: Response): Response =>
-  res.clearCookie("accessToken").clearCookie("refreshToken", {
-    path: REFRESH_PATH,
-  });
+  res
+    .clearCookie("accessToken", getAccessTokenCookieOptions())
+    .clearCookie("refreshToken", getRefreshTokenCookieOptions());
