@@ -10,18 +10,36 @@ const logFormat = format.combine(
   })
 );
 
+const loggerTransports: any[] = [
+  new transports.Console({
+    format: format.combine(
+      format.colorize(),
+      logFormat
+    ),
+  }),
+];
+
+// File logging is only enabled in non-serverless environments where local disk writes are permitted
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+if (!isServerless && config.NODE_ENV !== "production") {
+  const DailyRotateFile = (transports as any).DailyRotateFile;
+  if (DailyRotateFile) {
+    loggerTransports.push(
+      new DailyRotateFile({
+        dirname: "logs",
+        filename: "%DATE%-app.log",
+        datePattern: "YYYY-MM-DD",
+        maxSize: "20m",
+        maxFiles: "14d",
+      })
+    );
+  }
+}
+
 // Create logger instance
 export const logger = createLogger({
   level: config.NODE_ENV === "production" ? "info" : "debug",
   format: logFormat,
-  transports: [
-    new transports.Console(),
-    new transports.DailyRotateFile({
-      dirname: "logs",
-      filename: "%DATE%-app.log",
-      datePattern: "YYYY-MM-DD",
-      maxSize: "20m",
-      maxFiles: "14d",
-    }),
-  ],
+  transports: loggerTransports,
 });
+

@@ -16,9 +16,13 @@ const connectDatabase = async () => {
     return connectionPromise;
   }
 
+  if (!config.MONGO_URI) {
+    throw new Error("MONGO_URI is missing from environment variables!");
+  }
+
   try {
     connectionPromise = mongoose.connect(config.MONGO_URI, {
-      serverSelectionTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 5000,
     });
 
     await connectionPromise;

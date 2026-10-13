@@ -18,22 +18,6 @@ import adminRoutes from "./modules/admin/admin.routes";
 const app = express();
 const BASE_PATH = config.BASE_PATH;
 
-// Ensure database connection in serverless & container environments
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await connectDatabase();
-    next();
-  } catch (error) {
-    console.error("Database connection failure in request pipeline:", error);
-    res.status(500).json({
-      message: "Database connection failed. Please try again shortly.",
-    });
-  }
-});
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 // Dynamic CORS enabling local dev, APP_ORIGIN, and any Vercel deployments
 app.use(
   cors({
@@ -53,21 +37,34 @@ app.use(
   })
 );
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());
 
-// Root health check endpoint
-app.get(
-  "/",
-  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    res.status(HTTPSTATUS.OK).json({
-      message: "PesaFlow API is live & operational!",
-      environment: config.NODE_ENV,
-      status: "healthy",
-      timestamp: new Date().toISOString(),
+// Root health check endpoint (responds immediately so Vercel can verify function readiness)
+app.get("/", (req: Request, res: Response) => {
+  res.status(HTTPSTATUS.OK).json({
+    message: "PesaFlow API is live & operational!",
+    environment: config.NODE_ENV,
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Ensure database connection before API route execution
+app.use(BASE_PATH, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (error: any) {
+    console.error("Database connection failure in request pipeline:", error);
+    res.status(500).json({
+      message: "Database connection failed. Please ensure MongoDB Atlas Network Access allows connections (0.0.0.0/0).",
+      error: error?.message || "Unknown database error",
     });
-  })
-);
+  }
+});
 
 app.use(`${BASE_PATH}/auth`, authRoutes);
 app.use(`${BASE_PATH}/mfa`, mfaRoutes);
