@@ -1,3 +1,4 @@
+import "../src/common/utils/polyfills";
 import app from "../src/index";
 
 export default app;

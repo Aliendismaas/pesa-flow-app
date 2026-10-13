@@ -1,4 +1,3 @@
-import { PDFParse } from "pdf-parse";
 import {
   ParsedBundledTransaction,
   ParsedStatementResult,
@@ -19,6 +18,7 @@ export class NmbStatementParser {
     fileBuffer: Buffer,
     ownBankAccounts: string[] = ["24510060282", "10389772114"]
   ): Promise<ParsedStatementResult> {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse(new Uint8Array(fileBuffer));
     const result = await parser.getText();
     const fullText = result.text;
